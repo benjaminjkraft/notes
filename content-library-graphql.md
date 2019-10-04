@@ -78,7 +78,7 @@ query {
       ... on FloatingSidebarModule { ... }
       ... on MappersModule { ... }
       ... on ConceptIntroModule { ... }
-      // etc.
+      # etc.
     }
   }
 }
