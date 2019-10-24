@@ -7,7 +7,7 @@ These examples are intended to show off how the state injection will work; the d
 ```go
 func GetUserStories(
     ctx context.Context,
-    dsClient datastore.Client, 
+    dsClient datastore.Client,
     serviceClient graphql.Client,
     logger log.Client,
     count int,
@@ -45,7 +45,7 @@ func (suite *storiesSuite) TestGetUserStories() {
         suite.Logger,
         100,
     )
-    
+
     suite.Require().Equal(len(stories), 100)
     suite.Require().Equal(suite.Logger.LastLog().Text, "Got the stories")
 }
@@ -83,7 +83,7 @@ func (suite *storiesSuite) TestGetUserStories() {
     ctx := serviceClient.AddToContext(suite.GetContext())
 
     stories := GetUserStories(ctx, 100)
-    
+
     suite.Require().Equal(len(stories), 100)
     suite.Require().Equal(testutil.LastLog(ctx).Text, "Got the stories")
 }
@@ -120,7 +120,7 @@ func (suite *storiesSuite) TestGetUserStories() {
     testutil.MockServiceClient(testutil.FakeClient(...))
 
     stories := GetUserStories(context.Background(), 100)
-    
+
     suite.Require().Equal(len(stories), 100)
     suite.Require().Equal(testutil.LastLog().Text, "Got the stories")
 }
@@ -159,7 +159,7 @@ func (suite *storiesSuite) TestGetUserStories() {
     testutil.MockServiceClient(testutil.FakeClient(...))
 
     stories := GetUserStories(context.Background(), 100)
-    
+
     suite.Require().Equal(len(stories), 100)
     suite.Require().Equal(testutil.LastLog().Text, "Got the stories")
 }
