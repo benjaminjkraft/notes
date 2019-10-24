@@ -27,7 +27,27 @@ func GetUserStories(
             storiesToReturn = append(storiesToReturn, story)
         }
     }
+
+    logger.Info(ctx, "Got the stories")
     return retval
+}
+
+func (suite *storiesSuite) TestGetUserStories() {
+    // populate test entities
+    suite.DatastoreClient.Put(...)
+    // set up fake service with known response
+    serviceClient := testutil.FakeClient(...)
+
+    stories := GetUserStories(
+        context.Background(),
+        suite.DatastoreClient,
+        serviceClient,
+        suite.Logger,
+        100,
+    )
+    
+    suite.Require().Equal(len(stories), 100)
+    suite.Require().Equal(suite.Logger.LastLog().Text, "Got the stories")
 }
 ```
 
@@ -50,7 +70,22 @@ func GetUserStories(ctx context.Context, count int) []*Story {
             storiesToReturn = append(storiesToReturn, story)
         }
     }
+
+    log.GetClient(ctx).Info("Got the stories")
     return retval
+}
+
+func (suite *storiesSuite) TestGetUserStories() {
+    // populate test entities
+    datastore.GetClient(ctx).Put(...)
+    // set up fake service with known response
+    serviceClient := testutil.FakeClient(...)
+    ctx := serviceClient.AddToContext(suite.GetContext())
+
+    stories := GetUserStories(ctx, 100)
+    
+    suite.Require().Equal(len(stories), 100)
+    suite.Require().Equal(testutil.LastLog(ctx).Text, "Got the stories")
 }
 ```
 
@@ -73,7 +108,21 @@ func GetUserStories(ctx context.Context, count int) []*Story {
             storiesToReturn = append(storiesToReturn, story)
         }
     }
+
+    log.Client.Info("Got the stories")
     return retval
+}
+
+func (suite *storiesSuite) TestGetUserStories() {
+    // populate test entities
+    datastore.Client.Put(...)
+    // set up fake service with known response
+    testutil.MockServiceClient(testutil.FakeClient(...))
+
+    stories := GetUserStories(context.Background(), 100)
+    
+    suite.Require().Equal(len(stories), 100)
+    suite.Require().Equal(testutil.LastLog().Text, "Got the stories")
 }
 ```
 
@@ -96,6 +145,22 @@ func GetUserStories(ctx context.Context, count int) []*Story {
             storiesToReturn = append(storiesToReturn, story)
         }
     }
+
+    log.Info("Got the stories")
     return retval
+}
+
+// Note that with context-based dependency injection, things would look more
+// like the test there; this is what they would look like for mocking/globals.
+func (suite *storiesSuite) TestGetUserStories() {
+    // populate test entities
+    datastore.Put(...)
+    // set up fake service with known response
+    testutil.MockServiceClient(testutil.FakeClient(...))
+
+    stories := GetUserStories(context.Background(), 100)
+    
+    suite.Require().Equal(len(stories), 100)
+    suite.Require().Equal(testutil.LastLog().Text, "Got the stories")
 }
 ```
