@@ -81,11 +81,12 @@ func GetUserStories(ctx context.Context, count int) []*Story {
 }
 
 func (suite *storiesSuite) TestGetUserStories() {
+    ctx := testutil.WithDatastoreEmulator(context.Background())
     // populate test entities
     datastore.GetClient(ctx).Put(...)
     // set up fake service with known response
     serviceClient := testutil.FakeClient(...)
-    ctx := serviceClient.AddToContext(suite.GetContext())
+    ctx := serviceClient.AddToContext(ctx)
 
     stories := GetUserStories(ctx, 100)
 
