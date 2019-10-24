@@ -1,6 +1,7 @@
 # Examples for ADR #229: State-injection in Go
 
-These examples are intended to show off how the state injection will work; the details of the APIs aren't necessarily accurate.
+These examples are intended to show off how the state injection will work; the
+details of the APIs aren't necessarily accurate.
 
 ## Traditional Dependency Injection
 
@@ -10,11 +11,13 @@ func GetUserStories(
     dsClient datastore.Client,
     serviceClient graphql.Client,
     logger log.Client,
+    timer time.Source,
     count int,
 ) []*Story {
     stories := make([]*Story, 0, count)
 
-    err := dsClient.GetAll(ctx, &stories)
+    oneYearAgo := timer.Now().Sub(time.Year)
+    err := dsClient.GetAll(ctx, "after=", oneYearAgo, &stories)
     if err != nil {
         logger.Error(ctx, "Error fetching stories: %v", err)
         return nil
@@ -43,6 +46,7 @@ func (suite *storiesSuite) TestGetUserStories() {
         suite.DatastoreClient,
         serviceClient,
         suite.Logger,
+        suite.Timer,
         100,
     )
 
@@ -57,7 +61,8 @@ func (suite *storiesSuite) TestGetUserStories() {
 func GetUserStories(ctx context.Context, count int) []*Story {
     stories := make([]*Story, 0, count)
 
-    err := datastore.GetClient(ctx).GetAll(&stories)
+    oneYearAgo := lib.Now(ctx).Sub(time.Year)
+    err := datastore.GetClient(ctx).GetAll("after=", oneYearAgo, &stories)
     if err != nil {
         log.GetClient(ctx).Error("Error fetching stories: %v", err)
         return nil
@@ -95,7 +100,8 @@ func (suite *storiesSuite) TestGetUserStories() {
 func GetUserStories(ctx context.Context, count int) []*Story {
     stories := make([]*Story, 0, count)
 
-    err := datastore.Client.GetAll(ctx, &stories)
+    oneYearAgo := lib.Now().Sub(time.Year)
+    err := datastore.Client.GetAll(ctx, "after=", oneYearAgo, &stories)
     if err != nil {
         log.Client.Error(ctx, "Error fetching stories: %v", err)
         return nil
@@ -132,7 +138,8 @@ func (suite *storiesSuite) TestGetUserStories() {
 func GetUserStories(ctx context.Context, count int) []*Story {
     stories := make([]*Story, 0, count)
 
-    err := datastore.GetAll(ctx, &stories)
+    oneYearAgo := time.Now().Sub(time.Year)
+    err := datastore.Client.GetAll(ctx, "after=", oneYearAgo, &stories)
     if err != nil {
         log.Error(ctx, "Error fetching stories: %v", err)
         return nil
