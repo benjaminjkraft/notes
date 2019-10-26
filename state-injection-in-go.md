@@ -86,12 +86,61 @@ func (suite *storiesSuite) TestGetUserStories() {
     datastore.GetClient(ctx).Put(...)
     // set up fake service with known response
     serviceClient := testutil.FakeClient(...)
-    ctx := serviceClient.AddToContext(ctx)
+    ctx = serviceClient.AddToContext(ctx)
 
     stories := GetUserStories(ctx, 100)
 
     suite.Require().Equal(len(stories), 100)
     suite.Require().Equal(testutil.LastLog(ctx).Text, "Got the stories")
+}
+```
+
+## Client from khantext
+
+```go
+type myContext interface {
+    khantext.Base // includes context.Context, perhaps request data
+    khantext.DB
+    khantext.Service // or a specific service
+    khantext.Time // or include this in Base
+    khantext.Log // or include this in Base
+}
+
+func GetUserStories(ctx myContext, count int) []*Story {
+    stories := make([]*Story, 0, count)
+
+    oneYearAgo := ctx.Now().Sub(time.Year)
+    err := ctx.DBClient().GetAll("after=", oneYearAgo, &stories)
+    if err != nil {
+        ctx.Logger().Error("Error fetching stories: %v", err)
+        return nil
+    }
+
+    // Filter stories from banned users
+    retval := make([]*story, 0, count)
+    for _, story := range stories {
+        if !_isUserBanned(ctx, story.userKaid) {
+            storiesToReturn = append(storiesToReturn, story)
+        }
+    }
+
+    ctx.Logger().Info("Got the stories")
+    return retval
+}
+
+func (suite *storiesSuite) TestGetUserStories() {
+    ctx := testutil.AddDB(testutil.BaseTestContext())
+
+    // populate test entities
+    ctx.DBClient().Put(...)
+    // set up fake service with known response
+    serviceClient := testutil.FakeClient(...)
+    ctx = serviceClient.AddToOptions(ctx)
+
+    stories := GetUserStories(ctx, 100)
+
+    suite.Require().Equal(len(stories), 100)
+    suite.Require().Equal(ctx.TestLogs.Text, "Got the stories")
 }
 ```
 
