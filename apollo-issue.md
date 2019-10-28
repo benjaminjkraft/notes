@@ -1,5 +1,7 @@
 Currently, the federation documentation says
+
 > Note that you can only require fields that live on the original type definition, not on type extensions defined in other services.
+
 This issue proposes to remove this limitation.
 
 If the maintainers are open to this feature, we (@Khan) are interested in implementing it starting immediately.
