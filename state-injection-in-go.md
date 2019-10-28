@@ -118,6 +118,8 @@ type myContext interface {
 }
 
 func (r *queryResolver) UserStories(ctx context.Context, count int) ([]*graphql.Story, error) {
+    // extract request data from Go context, and dependencies from query
+    // resolver, to create khantext:
     ktx := dependencies.CreateKhantext(r, ctx)
     // or: ktx := r.CreateKhantext(ctx)
     stories := GetUserStories(ktx, count)
