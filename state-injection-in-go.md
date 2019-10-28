@@ -109,7 +109,7 @@ func (suite *storiesSuite) TestGetUserStories() {
 ## Client from khantext
 
 ```go
-type myContext interface {
+type myContext = interface {
     khantext.Base // includes context.Context, perhaps request data
     khantext.DB
     khantext.Service // or a specific service
@@ -162,6 +162,18 @@ func (suite *storiesSuite) TestGetUserStories() {
     suite.Require().Equal(len(stories), 100)
     suite.Require().Equal(ctx.TestLogs.Text, "Got the stories")
 }
+```
+
+Alternately, we could omit the interface definition at the top and write
+```go
+func GetUserStories(ctx interface {
+    khantext.Base
+    khantext.DB
+    khantext.Service
+    khantext.Time
+    khantext.Log
+}, count int) []*Story {
+    // ... as before
 ```
 
 ## Global client
