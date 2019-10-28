@@ -6,6 +6,12 @@ details of the APIs aren't necessarily accurate.
 ## Traditional Dependency Injection
 
 ```go
+func (r *queryResolver) UserStories(ctx context.Context, count int) ([]*graphql.Story, error) {
+    stories := GetUserStories(
+        ctx, r.DatastoreClient, r.ServiceClient, r.Logger, r.Timer, count)
+    return serializeStoriesToGraphQL(stories), nil
+}
+
 func GetUserStories(
     ctx context.Context,
     dsClient datastore.Client,
@@ -58,6 +64,11 @@ func (suite *storiesSuite) TestGetUserStories() {
 ## Client from context
 
 ```go
+func (r *queryResolver) UserStories(ctx context.Context, count int) ([]*graphql.Story, error) {
+    stories := GetUserStories(ctx, count)
+    return serializeStoriesToGraphQL(stories), nil
+}
+
 func GetUserStories(ctx context.Context, count int) []*Story {
     stories := make([]*Story, 0, count)
 
@@ -106,6 +117,13 @@ type myContext interface {
     khantext.Log // or include this in Base
 }
 
+func (r *queryResolver) UserStories(ctx context.Context, count int) ([]*graphql.Story, error) {
+    ktx := dependencies.CreateKhantext(r, ctx)
+    // or: ktx := r.CreateKhantext(ctx)
+    stories := GetUserStories(ktx, count)
+    return serializeStoriesToGraphQL(stories), nil
+}
+
 func GetUserStories(ctx myContext, count int) []*Story {
     stories := make([]*Story, 0, count)
 
@@ -147,6 +165,11 @@ func (suite *storiesSuite) TestGetUserStories() {
 ## Global client
 
 ```go
+func (r *queryResolver) UserStories(ctx context.Context, count int) ([]*graphql.Story, error) {
+    stories := GetUserStories(ctx, count)
+    return serializeStoriesToGraphQL(stories), nil
+}
+
 func GetUserStories(ctx context.Context, count int) []*Story {
     stories := make([]*Story, 0, count)
 
@@ -185,6 +208,11 @@ func (suite *storiesSuite) TestGetUserStories() {
 ## No client
 
 ```go
+func (r *queryResolver) UserStories(ctx context.Context, count int) ([]*graphql.Story, error) {
+    stories := GetUserStories(ctx, count)
+    return serializeStoriesToGraphQL(stories), nil
+}
+
 func GetUserStories(ctx context.Context, count int) []*Story {
     stories := make([]*Story, 0, count)
 
