@@ -126,7 +126,7 @@ Here our graph looks like:
 me ---> me.friends --> me.friends.isFriendsWithCurrentUser --> me.friends.name
                                                         `--> me.friends.phoneNumber
 ```
-We can combine nodes to get:
+We can combine vertices to get:
 ```
 me ---> me.friends, me.friends.isFriendsWithCurrentUser --> me.friends.name, me.friends.phoneNumber
 ```
@@ -137,4 +137,4 @@ In the case where `name` is publicly visible, we get a less ideal query plan. Th
 me ---> me.friends --> me.friends.isFriendsWithCurrentUser --> me.friends.phoneNumber
               `--> me.friends.name
 ```
-sadly has no nodes we can combine, which is likely not ideal.  Potentially an `@provides` annotation on `isFriendsWithCurrentUser could help us see the right query plan here, but the general case is tricky.
+sadly has no vertices we can combine, which is likely not ideal.  Potentially an `@provides` annotation on `isFriendsWithCurrentUser could help us see the right query plan here, but the general case is tricky.
