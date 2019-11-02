@@ -138,3 +138,34 @@ me ---> me.friends --> me.friends.isFriendsWithCurrentUser --> me.friends.phoneN
               `--> me.friends.name
 ```
 sadly has no vertices we can combine, which is likely not ideal.  Potentially an `@provides` annotation on `isFriendsWithCurrentUser` could help us see the right query plan here, but the general case is tricky.
+
+## Problems needing solution
+
+Right now, this does not preserve extant behavior for the following query:
+```graphql
+# users service
+type User @key(fields: "id") {
+  id: ID
+  name: String
+}
+
+extend type Query {
+  me: User
+}
+
+# reviews service
+extend type User @key(fields: "id") {
+  reviews: [String]
+}
+
+query {
+  me {
+    name
+    reviews
+  }
+}
+```
+
+We would fetch `me`, then in parallel `me.name` and `me.reviews`; but Apollo fetches `me` and `me.name` in one query, then `me.reviews`.  They're right if `name` is cheap given the rest of `me`; we're right if it's expensive, especially if `reviews` also is.  But we should probably follow what they do, at least to start.
+
+If I understand correctly, in our terminology they're merging nodes by looking only at matching dependencies (in-neighbors), not at matching reverse-dependencies (out-neighbors).  Maybe it suffices to do the same.
