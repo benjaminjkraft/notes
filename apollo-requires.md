@@ -98,8 +98,8 @@ For user-specific permissions, consider:
 # users service
 type User @key(fields: "id") {
   id: ID
-  name: String @requires("isFriendsWithCurrentUser")
-  phoneNumber: String @requires("isFriendsWithCurrentUser")
+  name: String @requires(fields: "isFriendsWithCurrentUser")
+  phoneNumber: String @requires(fields: "isFriendsWithCurrentUser")
 }
 
 extend type Query {
