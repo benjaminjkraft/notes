@@ -141,7 +141,9 @@ sadly has no vertices we can combine, which is likely not ideal.  Potentially an
 
 ## Problems needing solution
 
-Right now, this does not preserve extant behavior for the following query:
+**Cases where we differ from current behavior:**
+
+Consider the query:
 ```graphql
 # users service
 type User @key(fields: "id") {
@@ -181,3 +183,7 @@ me [u] --> me.friends, me.friends.isFriendsWithCurrentUser [r] --> me.friends.na
 ```
 
 It also raises the question: should we merge in any cases where the dependencies don't match?  Apollo doesn't seem to do so, but that may be because of their implementation: they traverse the query more or less as a tree, from shallow to deep.  However, arbitrary such merging seems sketchy; does it really make sense to merge unrelated nodes -- say leaf nodes -- just because they happen to hit the same service?  Even though it feels oddly asymmetric, it may be most practical to merge only from the front.
+
+**Cases needing more detail:**
+
+The above algorithm doesn't really describe what happens with interfaces.  It looks like the approach Apollo currently uses, where it follows the entire path through on each type implementing the interface separately, will work, but I need to investigate further.
