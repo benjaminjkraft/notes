@@ -121,21 +121,21 @@ query {
   }
 }
 ```
-Here our graph looks like:
+Here our graph looks like (brackets denote the services):
 ```
-me ---> me.friends --> me.friends.isFriendsWithCurrentUser --> me.friends.name
-                                                        `--> me.friends.phoneNumber
+me [u] --> me.friends [r] --> me.friends.isFriendsWithCurrentUser [r] --> me.friends.name [u]
+                                                               `--> me.friends.phoneNumber [u]
 ```
 We can combine vertices to get:
 ```
-me ---> me.friends, me.friends.isFriendsWithCurrentUser --> me.friends.name, me.friends.phoneNumber
+me [u] --> me.friends, me.friends.isFriendsWithCurrentUser [r] --> me.friends.name, me.friends.phoneNumber [u]
 ```
 which is to say again we do the obvious: we fetch the user's ID from `users`; then their friends, along with the bit that they are the user's friend (in this case, easy to know since that service has already checked that relationship); then those friends' names and phone numbers.  
 
 In the case where `name` is publicly visible, we get a less ideal query plan. The graph
 ```
-me ---> me.friends --> me.friends.isFriendsWithCurrentUser --> me.friends.phoneNumber
-              `--> me.friends.name
+me [u] --> me.friends [r] --> me.friends.isFriendsWithCurrentUser [r] --> me.friends.phoneNumber [u]
+                  `--> me.friends.name [u]
 ```
 sadly has no vertices we can combine, which is likely not ideal.  Potentially an `@provides` annotation on `isFriendsWithCurrentUser` could help us see the right query plan here, but the general case is tricky.
 
@@ -168,4 +168,16 @@ query {
 
 We would fetch `me`, then in parallel `me.name` and `me.reviews`; but Apollo fetches `me` and `me.name` in one query, then `me.reviews`.  They're right if `name` is cheap given the rest of `me`; we're right if it's expensive, especially if `reviews` also is.  But we should probably follow what they do, at least to start.
 
-If I understand correctly, in our terminology they're merging nodes by looking only at matching dependencies (in-neighbors), not at matching reverse-dependencies (out-neighbors).  Maybe it suffices to do the same.
+If I understand correctly, in our terminology they're merging nodes by looking only at matching dependencies (in-neighbors), not at matching reverse-dependencies (out-neighbors).  Maybe it suffices to do the same.  This is a good idea if fields from the parent service with no `@requires` are typically cheap to add onto a fetch of the `@key`, which is plausibly true.
+
+In the last example above, this would allow us to merge
+```
+me [u] --> me.friends [r] --> me.friends.isFriendsWithCurrentUser [r] --> me.friends.phoneNumber [u]
+                  `--> me.friends.name [u]
+```
+into the same query as in the prior example (first by merging `isFriendsWithCurrentUser` into its parent; then by merging the two siblings from `users`):
+```
+me [u] --> me.friends, me.friends.isFriendsWithCurrentUser [r] --> me.friends.name, me.friends.phoneNumber [u]
+```
+
+It also raises the question: should we merge in any cases where the dependencies don't match?  Apollo doesn't seem to do so, but that may be because of their implementation: they traverse the query more or less as a tree, from shallow to deep.  However, arbitrary such merging seems sketchy; does it really make sense to merge unrelated nodes -- say leaf nodes -- just because they happen to hit the same service?  Even though it feels oddly asymmetric, it may be most practical to merge only from the front.
