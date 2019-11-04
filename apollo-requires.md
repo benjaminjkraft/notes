@@ -164,3 +164,42 @@ query {
 ```
 
 We would fetch `me` and `me.name` in a single query, then `me.reviews`.  In the case where `name` is expensive, this is suboptimal, but the safest assumption is likely that given `me.id` it's cheap.
+
+We still differ in some cases.  Consider the query:
+```graphql
+# users service
+type User @key(fields: "id") {
+  id: ID
+  name: String
+}
+
+extend type Query {
+  me: User
+  user(id: ID!): User
+}
+
+# reviews service
+extend type User @key(fields: "id") {
+  reviews: [String]
+}
+
+query {
+  me {
+    reviews
+  }
+  user(id: "...") {
+    reviews
+  }
+}
+```
+
+Apollo fetches `me` and `user` in a single query, and then sends out separate queries to the reviews service for each of their reviews, because it never merges across branches.  We would merge, because our graph looks like
+```
+  me [u] --> me.reviews [r]
+user [u] --> user.reviews[r]
+```
+We first merge the two toplevel queries, then this allows us to merge their dependencies.
+```
+me, user [u] --> me.reviews, user.reviews [r]
+```
+In this case, our behavior is clearly better, but in other cases -- such as if we had requested some other field that depends on `reviews` only for `me` -- it might not be.  It seems to me like the new behavior is on the whole better, but if preserving current behavior is desirable, we could add an additional rule that we only merge vertices if they have the same path in the query except as to the final field -- so we can merge `[query].me` with `[query].user` but not `me.reviews` with `user.reviews`.  Such a rule might also make the implementation simpler.
