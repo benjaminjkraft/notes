@@ -54,7 +54,9 @@ extend type Query {
 }
 ```
 
-To handle `{ a2 a3 }`, we need to resolve `a1`, then `b1`, then `a2`; and we need to resolve `a3`.  We can optionally merge `a3` into the query for `a1` or `a2`, or keep it separate; the most efficient option depends on a bunch of implementation details of the services.  If `a1` and `a2` are quick to compute, but `b1` and `a3` are slow to compute, then we want to pursue the two paths fully in parallel, so that fetching `a3` doesn't end up on the critical path to computing `a2`.  But if `a3` is cheaply computed from the same expensive-to-fetch data as `a1`, we want to bundle those two together; and conversely `a2`.  Short of streaming GraphQL responses, there's no universal solution; I propose that fetching `a3` separately is the least-bad option in most cases: combining the queries makes it impossible to optimize further in the case where `a3` is slow; but separating them allows the backend service the option to optimize.  Future updates could potentially leverage performance data from past queries to make a more educated guess.
+To handle `{ a2 a3 }`, we need to resolve `a1`, then `b1`, then `a2`; and we need to resolve `a3`.  We can optionally merge `a3` into the query for `a1` or `a2`, or keep it separate; the most efficient option depends on a bunch of implementation details of the services.  If `a1` and `a2` are quick to compute, but `b1` and `a3` are slow to compute, then we want to pursue the two paths fully in parallel, so that fetching `a3` doesn't end up on the critical path to computing `a2`.  But if `a3` is cheaply computed from the same expensive-to-fetch data as `a1`, we want to bundle those two together; and conversely `a2`.  Short of streaming GraphQL responses, there's no universal solution.
+
+I propose to follow the approach that most closely matches the existing behavior: namely, we fetch `a3` along with `a1`.  For the toplevel `Query`, it's sort of arbitrary, but for other types, this supposes that fields from the owning service with no `@requires` are typically cheap to add onto a fetch of the `@key` field, which is plausibly true.  It feels a little asymmetric, but it seems like the most practical approach.  (Fetching `a3` separately might be better in that it in principle allows the backend to do optimization that it fundamentally can't if we merge any queries, but it likely adds the most overhead to a naive backend, since it adds a bunch of extra queries in common cases.)  Future updates could potentially leverage performance data from past queries to make a more educated guess, or allow backends to provide further hints to the query planner.
 
 To do so, we:
 
@@ -62,9 +64,13 @@ To do so, we:
 
 2. Create a graph whose vertices are the fields in the query, and whose edges are dependencies between those fields.  Note that "fields" here refers to fields-of-query-nodes, not fields-of-types: a single field of a particular type may appear multiple times in a query.  Namely, there are edges from each extension field to its `@key` field(s); from each field to the sibling field(s) it `@requires`; and from each field to its child fields.  Note that in the case of a nested key or requires, there will be an edge to the base field and each descendant that is `@requires`d: for example if `a @requires(fields: "b { c { d } }")` we will have edges from `a` to `b`, `b.c`, and `b.c.d`.
 
-3. Now, we want to merge the vertices representing fields that should be queried together.  To preserve correctness, we must avoid merging fields which would create cycles, i.e., those vertices which already have a path between them.  (Note that we can merge the vertices if there is a direct edge from one to the other, but no other such path.)    This is the part where we get to make choices; for the reasons described above we merge only those vertices which have precisely the same vertices as in-neighbors and out-neighbors (with the potential exception of direct edges from one to the other, as before).  This is necessarily a safe merger, as two such vertices cannot have a path (it would result in a cycle); and this process is well-defined and deterministic, as this neighbor-equivalence relation is transitive and symmetric.
+3. Now, we want to merge the vertices representing fields that should be queried together.  To preserve correctness, we must avoid merging fields which would create cycles, i.e., those vertices which already have a path between them.  (Note that we can merge the vertices if there is a direct edge from one to the other, but no other such path.)    This is the part where we get to make choices; for the reasons described above we merge those vertices which have the same dependencies (i.e. vertices with the same in-edges), with the exception of direct edges from one to the other which we also allow.  This is necessarily a safe merger, as two such vertices cannot have a path (it would result in a cycle via their common dependency); and this process is well-defined and deterministic, as this in-neighbor-equivalence relation is transitive and symmetric.
 
 4. We now have the query graph to be executed.  Each vertex of this graph is a subquery, and the edges of the graph determine which queries must block on which others.  (We have ensured there can be no cycles.)  Stitching the actual result data back together is nontrivial, but should work roughly as it does today.
+
+This description omits handling of interfaces, but the approach Apollo currently uses should work: namely, it follows the entire subquery affected by the interface through each type that implements the interface, separately.  Similarly, slight adjustments may be necessary to take advantage of `@provides`, but these should be easy to incorporate.
+
+**Examples:**
 
 In particular, this handles well the common permissions-checking cases I describe above.  First, for global permissions, consider the following schema and query:
 ```graphql
@@ -91,14 +97,14 @@ query {
   myCustomers
 }
 ```
-In step 1 we will add the `currentUserIsSeller` field; in step 2 this field will have edges to all the others.  In step 3 we will merge the two fields from the users service, which results in the query plan one would expect: we fetch the permission, then, in parallel, fetch the fields from each service on which it depends.  Note that if we had also fetched `myUserProfile`, we would have done so in a separate request, in case this profile is slow to compute.
+In step 1 we will add the `currentUserIsSeller` field; in step 2 this field will have edges to all the others.  In step 3 we will merge the two fields from the users service, which results in the query plan one would expect: we fetch the permission, then, in parallel, fetch the fields from each service on which it depends.  Note that if we had also fetched `myUserProfile`, we would have done so in a separate request, since it doesn't depend on the `@requires`.
 
 For user-specific permissions, consider:
 ```graphql
 # users service
 type User @key(fields: "id") {
   id: ID
-  name: String @requires(fields: "isFriendsWithCurrentUser")
+  name: String
   phoneNumber: String @requires(fields: "isFriendsWithCurrentUser")
 }
 
@@ -123,27 +129,16 @@ query {
 ```
 Here our graph looks like (brackets denote the services):
 ```
-me [u] --> me.friends [r] --> me.friends.isFriendsWithCurrentUser [r] --> me.friends.name [u]
-                                                               `--> me.friends.phoneNumber [u]
+me [u] --> me.friends [r] --> me.friends.isFriendsWithCurrentUser [r] --> me.friends.phoneNumber [u]
+                  `--> me.friends.name [u]
 ```
 We can combine vertices to get:
 ```
 me [u] --> me.friends, me.friends.isFriendsWithCurrentUser [r] --> me.friends.name, me.friends.phoneNumber [u]
 ```
-which is to say again we do the obvious: we fetch the user's ID from `users`; then their friends, along with the bit that they are the user's friend (in this case, easy to know since that service has already checked that relationship); then those friends' names and phone numbers.  
+which is to say: we fetch the user's ID from `users`; then their friends, along with the bits, for each user, that they are the user's friend (in this case, easy to know since that service has already checked that relationship); then those friends' names and phone numbers.  Note that this is a case where being more conservative about merging (leaving `a3` separate, in the above example) results in a likely-worse query plan; it would permit no merging at all.
 
-In the case where `name` is publicly visible, we get a less ideal query plan. The graph
-```
-me [u] --> me.friends [r] --> me.friends.isFriendsWithCurrentUser [r] --> me.friends.phoneNumber [u]
-                  `--> me.friends.name [u]
-```
-sadly has no vertices we can combine, which is likely not ideal.  Potentially an `@provides` annotation on `isFriendsWithCurrentUser` could help us see the right query plan here, but the general case is tricky.
-
-## Problems needing solution
-
-**Cases where we differ from current behavior:**
-
-Consider the query:
+This also matches current behavior.  Consider the query:
 ```graphql
 # users service
 type User @key(fields: "id") {
@@ -168,22 +163,4 @@ query {
 }
 ```
 
-We would fetch `me`, then in parallel `me.name` and `me.reviews`; but Apollo fetches `me` and `me.name` in one query, then `me.reviews`.  They're right if `name` is cheap given the rest of `me`; we're right if it's expensive, especially if `reviews` also is.  But we should probably follow what they do, at least to start.
-
-If I understand correctly, in our terminology they're merging nodes by looking only at matching dependencies (in-neighbors), not at matching reverse-dependencies (out-neighbors).  Maybe it suffices to do the same.  This is a good idea if fields from the parent service with no `@requires` are typically cheap to add onto a fetch of the `@key`, which is plausibly true.
-
-In the last example above, this would allow us to merge
-```
-me [u] --> me.friends [r] --> me.friends.isFriendsWithCurrentUser [r] --> me.friends.phoneNumber [u]
-                  `--> me.friends.name [u]
-```
-into the same query as in the prior example (first by merging `isFriendsWithCurrentUser` into its parent; then by merging the two siblings from `users`):
-```
-me [u] --> me.friends, me.friends.isFriendsWithCurrentUser [r] --> me.friends.name, me.friends.phoneNumber [u]
-```
-
-It also raises the question: should we merge in any cases where the dependencies don't match?  Apollo doesn't seem to do so, but that may be because of their implementation: they traverse the query more or less as a tree, from shallow to deep.  However, arbitrary such merging seems sketchy; does it really make sense to merge unrelated nodes -- say leaf nodes -- just because they happen to hit the same service?  Even though it feels oddly asymmetric, it may be most practical to merge only from the front.
-
-**Cases needing more detail:**
-
-The above algorithm doesn't really describe what happens with interfaces.  It looks like the approach Apollo currently uses, where it follows the entire path through on each type implementing the interface separately, will work, but I need to investigate further.
+We would fetch `me` and `me.name` in a single query, then `me.reviews`.  In the case where `name` is expensive, this is suboptimal, but the safest assumption is likely that given `me.id` it's cheap.
