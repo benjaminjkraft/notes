@@ -43,14 +43,14 @@ To construct the query plan, we break the query into groups of field-resolution 
 ```graphql
 # service A
 extend type Query {
-  a1: String @requires(fields: "b1")
-  a2: String
+  a1: String
+  a2: String @requires(fields: "b1")
   a3: String
 }
 
 # service B
 extend type Query {
-  b1: String @requires(fields: "a2")
+  b1: String @requires(fields: "a1")
 }
 ```
 
