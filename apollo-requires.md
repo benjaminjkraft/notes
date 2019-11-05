@@ -203,3 +203,40 @@ We first merge the two toplevel queries, then this allows us to merge their depe
 me, user [u] --> me.reviews, user.reviews [r]
 ```
 In this case, our behavior is clearly better, but in other cases -- such as if we had requested some other field that depends on `reviews` only for `me` -- it might not be.  It seems to me like the new behavior is on the whole better, but if preserving current behavior is desirable, we could add an additional rule that we only merge vertices if they have the same path in the query except as to the final field -- so we can merge `[query].me` with `[query].user` but not `me.reviews` with `user.reviews`.  Such a rule might also make the implementation simpler.
+
+# Series-parallel problems
+
+I had originally hoped that -- perhaps by using the restriction I mention at the end of my prior comment, of never merging non-siblings -- I could avoid having to change the `QueryPlan` data structure (and thus its execution, serialization, etc.; along with any client code that depends on it -- while it's not documented it is exported from `apollo-gateway`).  Sadly, the data structure can only represent [series-parallel graphs](https://en.wikipedia.org/wiki/Series-parallel_graph)\* of fetches.  If the `@requires` on a single field can form an arbitrary DAG, then it's easy to construct a case where the most efficient query plan requires a fetch-dependency graph matching that DAG.  But we cannot represent an arbitrary DAG as series-parallel.
+
+For example, consider the following overall schema (supposing each field is resolved by a different service):
+```graphql
+type T {
+  a: String @requires(fields: "b c")
+  b: String @requires(fields: "d e")
+  c: String @requires(fields: "e")
+  d: String @requires(fields: "f")
+  e: String @requires(fields: "f")
+  f: String
+}
+```
+The most efficient way to fetch `a` is not series-parallel: it looks like
+```
+    a
+   / \
+  b   c
+ / \ /
+d   e
+ \ /
+  f
+```
+where we fetch each field once all its children are completed.  This query plan cannot currently be represented.
+
+I see three ways to go forward:
+
+1. Modify the `QueryPlan` data structure to represent arbitrary graphs.  I don't think there's much that's intrinsically hard about this -- the promises that are used to execute it can represent such a graph easily -- but it will require a lot more code changes.  If the structure of `QueryPlan` is considered a public API, this would break compatibility.  (At least, I presume it might require changes to Graph Manager or other Apollo-controlled code outside apollo-server.)
+2. Compute an imperfect query plan which can be represented.  For example, in the above case, we could introduce an artificial dependency of `e` on `d`.  This isn't a huge problem: while it's inefficient I expect queries that actually take advantage of this behavior would be rare.  But it's pretty ugly: we will have to do extra work just to come up with a worse query plan.
+3. Add further restrictions to what `@requires` are supported that still handle the common use cases, but avoid this problem.  The one that comes to mind is to say you can't `@requires` a field which itself has an `@requires` -- this means we can simplify the query planning to first fetch the `@key` (if needed), then fetch any `@requires`d fields, then fetch the desired fields.  This is far more restrictive than actually necessary, but it will still handle the cases I describe above, and it can always be extended later.
+
+I'm currently thinking to go ahead with option 3.
+
+\*There are some technicalities here: really I mean graphs which, when redundant edges are removed, are not series-parallel; but this doesn't affect the overall result.
