@@ -27,3 +27,6 @@ code review.
 
 - style guide for ADRs (perhaps based on common review comments)
 - writing workshops
+- abstracts for ADRs
+- opinionated ADR update (interesting current ADRs) or other signposting of which are interesting to read
+- index of ADRs (a la index of PEPs)
