@@ -1,7 +1,9 @@
 # GopherCon 2020 proposal
 
 title: A Goliath Project: Khan Academy's Go Migration
+
 tutorial (45m) / all audiences
+
 tags: go, web, services, python
 
 ## Elevator Pitch (300 chars)
