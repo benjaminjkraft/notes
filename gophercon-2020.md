@@ -7,12 +7,12 @@ tutorial (45m) / all audiences
 tags: go, web, services, python
 
 ## Elevator Pitch (300 chars)
-Khan Academy is in the midst of a huge effort to migrate our 10-year-old Python 2 monolith to a more modern Go service architecture, without disrupting the millions of learners and teachers who rely on us. This talk will discuss why we're moving to Go, how we're doing it, and what we've learned.
+Khan Academy is in the midst of a huge effort to migrate our aging Python 2 monolith to a modern Go service architecture, without disrupting the millions of learners and teachers who rely on us. This talk will discuss why we're moving to Go, how we're doing it, and what we've learned.
 
 ## Description (for attendees)
-Khan Academy's mission is to provide a free, world-class education to anyone, anywhere. Our website, used by millions of learners, is powered by a codebase a few months older than Go, which until recently was written in Python 2. We're migrating to a new Go service architecture, to improve performance, better scale our team, and put us on a strong foundation to continue to improve education over the next 10 years and beyond.
+Khan Academy's mission is to provide a free, world-class education to anyone, anywhere. Our website, used by millions of learners, is powered by a codebase a few months older than Go, which until recently was written in Python 2. We're incrementally migrating to a new Go service architecture, to improve performance, better scale our team, and put us on a strong foundation to continue to improve education over the next 10 years and beyond.
 
-Rewriting our backend is a huge project! Why did we consider such a big move? How did we set ourselves up for success? Where did we go right, and where did we go wrong? Which parts did we plan ahead, and which did we figure out on-the-fly? What were we thinking?! This talk will answer these questions, and more.
+Rewriting our backend is a huge project! Why did we consider such a big move? How did we set ourselves up for success? How are we doing such a big migration incrementally and without affecting our users? Where did we go right, and where did we go wrong? Which parts did we plan ahead, and which did we figure out on-the-fly? What were we thinking?! This talk will answer these questions, and more.
 
 ## Bio
 
@@ -20,7 +20,7 @@ Ben has been on the Infrastructure Team at Khan Academy for the last five years,
 
 ## Notes (for reviewers)
 
-I'm one of the technical leads of this project at Khan. It's very much in progress and in our team's collective brains, so it's a great time for us to talk about it! I think the way we've planned everything centrally and tried to maintain consistency from the start is especially unusual/interesting.
+I'm one of the technical leads of this project at Khan. It's very much in progress and in our team's collective brains, so it's a great time for us to talk about it! I think the way we've planned things and tried to maintain consistency across teams from the start is the most unusual/interesting part of our experience, but many parts of our experience may be of interest to others considering any major language shift. (And to those who love Khan Academy!)
 
 ## Additional information
 
@@ -35,7 +35,8 @@ This is a draft outline if I were to give the talk now; there's plenty for a tal
     - 27 services (maybe talk through a few, and how they looked in the monolith vs. now)
     - still App Engine
     - GraphQL everywhere, Apollo federation to glue it together
-    - Keeping a monorepo
+    - keeping a monorepo
+    - migrating incrementally for a smooth transition
 - Key things we did (25 min)
     - Drawing service boundaries in advance
         - building on prior work to define "components" within the monolith
@@ -48,6 +49,7 @@ This is a draft outline if I were to give the talk now; there's plenty for a tal
         - shared libraries let a small infrastructure team support everyone better (if time: an in-depth example, such as our web-serving entrypoint)
         - consistent processes and style let people work fluidly across teams
         - spread this via explicit broadcast communication, code review, and linting
+        - a cost: less room to experiment with alternatives that we might want to adopt.
     - Build scaffolding for a smooth transition
         - refactor in Python first, not while we move (more on this later)
         - expose GraphQL from Python so we can decouple REST -> GraphQL from Python -> Go
