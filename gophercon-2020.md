@@ -12,7 +12,7 @@ Khan Academy is in the midst of a huge effort to migrate our aging Python 2 mono
 ## Description (for attendees)
 Khan Academy's mission is to provide a free, world-class education to anyone, anywhere. Our website, used by millions of learners, is powered by a codebase that dates to before Go's public release, and which until recently was written in Python 2. We're incrementally migrating to a new Go service architecture, to improve performance, better scale our team, and put us on a strong foundation to continue to improve education over the next 10 years and beyond.
 
-Rewriting our backend is a huge project! Why did we consider such a big move? For whom would such a move be worth considering? How did we set ourselves up for success? How are we doing such a big migration incrementally and without affecting our users? Where did we go right, and where did we go wrong? Which parts did we plan ahead, and which did we figure out on-the-fly? What were we thinking?! This talk will answer these questions, and more.
+Rewriting our backend is a huge project! Why did we consider such a big move? How did we set ourselves up for success, and avoid disrupting our users? Where did we go right, and where did we go wrong? Who should consider such a move? Which parts did we plan ahead, and which did we figure out on-the-fly? What were we thinking?! This talk will answer these questions, and more.
 
 ## Bio
 
@@ -27,23 +27,23 @@ I'm one of the technical leads of this project at Khan. It's very much in progre
 This is a draft outline if I were to give the talk now; there's plenty for a talk here but by Gophercon I'll have another 6 months worth of things to say, so I may replace some of what's below with things we haven't yet done.
 
 - Intro/our old system (5 mins)
-    - What it does/overview of our site: displaying content, managing content, tracking learner progress, individual and aggregate reporting.
-    - Architecture: Python 2 monolith on App Engine.  (Flash back to 10 years ago; what's changed since then — React, GraphQL, Go.)
-    - Why move/why Go: Python 3 is a lot of work, interest in a faster and more structured language, interest in more team independence; Go fits our style of consistency and simplicity
-- A quick tour of our new system-in-progress (10 min)
-    - (keep this quick, it's mostly just for context)
+    - what it does/overview of our site: displaying content, managing content, tracking learner progress, individual and aggregate reporting
+    - architecture: Python 2 monolith on App Engine (flash back to 10 years ago; what's changed since then — React, GraphQL, Go)
+    - why move/why Go: Python 3 is a lot of work, interest in a faster and more structured language, interest in more team independence; Go fits our style of consistency and simplicity
+- A quick tour of our new system-in-progress (5-10 min)
+    - (keep this quick, it's mostly just for context and people interested in the details can ask me after/read our blog posts)
     - Go everywhere
     - 27 services (if time: maybe talk through a few, and how they looked in the monolith vs. now)
     - still App Engine (and other GCP services)
     - GraphQL everywhere, Apollo federation to glue it together (if time: a bit more on this; but really it's a talk of its own)
     - keeping a monorepo
     - migrating incrementally for a smooth transition
-- Dos and don'ts (25 min)
+- Dos and don'ts (20-30 min)
     - Drawing service boundaries in advance
         - building on prior work to define "components" within the monolith
         - sketch potential services; do static analysis to identify problems; discuss potential solutions and refine
-        - come up with principles: clear data ownership, right size for services, etc.
-        - include the whole product team, not just engineering, in the process: it will affect them too
+        - come up with principles: clear data ownership, right size for services, API format, etc.
+        - include the whole product team, not just engineering, in the process: service boundaries will affect them too
         - make the plan at the start to avoid painting yourself into a corner, but don't build things until you actually need them
     - Agree on practices, rather than having each team go its own way
         - shared libraries let a small infrastructure team support everyone better (likely with an in-depth example, such as our web-serving entrypoint)
@@ -63,8 +63,8 @@ This is a draft outline if I were to give the talk now; there's plenty for a tal
         - the monolith is a service too; use it as a federation backend, for example
         - side-by-side testing to compare new and old routes
 - Conclusion (5 min)
-    - Graph of replacing Python with Go over time
-    - General team impressions
-    - Talk to me next GopherCon for the thrilling conclusion!
+    - graph of replacing Python with Go over time
+    - general team impressions
+    - talk to me next GopherCon for the thrilling conclusion!
 
 For additional context on the project, check out my coworker's [blog post](https://engineering.khanacademy.org/posts/goliath.htm).
