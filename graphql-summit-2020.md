@@ -1,6 +1,6 @@
 # GraphQL Summit 2020 proposal
 
-title: A Goliath Project: Khan Academy's Go and GraphQL Migration
+title: A Goliath Project: Khan Academy's GraphQL Migration
 
 themes: server, scaling the graph
 
@@ -23,11 +23,11 @@ Ben has been on the Infrastructure Team at Khan Academy for the last five years,
 
 ## 2-3 minute video
 
-Khan Academy is doing a big migration to services, and we're using GraphQL really everywhere, and federation in a big way.  So this talk is basically to give a large-scale worked example of how federation, and generally GraphQL works in real life.  With 25 minutes I'll have to narrow to a few themes for more focus.  Some of those will be about how we're using federation -- what problems it has solved for us, what do we wish we had done differently, or wish federation helped more with, how we're handling legacy non-GraphQL APIs, etc.  But I also plan to talk about some of the more general issues: how we drew service boundaries, how to keep the project manageable.  It will also be a conversation-starter for anyone else considering similar project -- there's a lot more to talk about that doesn't fit into a talk.  And of course some folks will be interested in the talk just because they love Khan Academy, and that will be fun for them too.
+Khan Academy is doing a big migration to services, and we're using GraphQL really everywhere, and federation in a big way.  So this talk is basically to give a large-scale worked example of how federation, and generally GraphQL works in real life in a large web backend with millions of users.  With 25 minutes I'll have to narrow to a few theme.  The most interesting things, I think, are the process we went through to draw the service boundaries (and how federation ended up playing into that), and how we're having the federation gateway do side-by-side testing, so as we migrate fields from one service to another, we actually have the gateway fetch from both and compare the results.  But I will also touch on how we're using federation -- what problems it has solved for us, what do we wish we had done differently, or wish federation helped more with.  And for fun we've also got some creative uses of GraphQL *everywhere* -- even internally for REST APIs, cron jobs, etc.  And of course it's always fun to be able to see how technology can make a real difference in the world -- and so talking about what Khan Academy is doing is great for that too.
 
 ## Anything else
 
-(See the video)
+For additional context on the project, and why it's interesting other than just GraphQL, check out my coworker's [blog post](https://engineering.khanacademy.org/posts/goliath.htm).
 
 ## Draft outline
 
@@ -70,5 +70,3 @@ Khan Academy is doing a big migration to services, and we're using GraphQL reall
     - graph of replacing Python with Go over time, and of GraphQL Gateway traffic
     - general team impressions
     - talk to me next GraphQL Summit for the thrilling conclusion!
-
-For additional context on the project, check out my coworker's [blog post](https://engineering.khanacademy.org/posts/goliath.htm).
