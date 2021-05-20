@@ -2,7 +2,8 @@
 
 It's bothering me more and more that I don't know of a good way to unmarshal JSON into a struct with fields of interface type in Go.
 
-Specifically, suppose I have types like
+Specifically, suppose I want to unmarshal a type like the following:
+
 ```go
 type Dog struct {
   Species string `json:"species"`
@@ -22,19 +23,164 @@ type Family struct {
 }
 ```
 
-Obviously this isn't something the JSON library is going to be able to handle itself -- I need to write `Family.UnmarshalJSON` that will unmarshal just the `Pets.Species` field and use that to decide which concrete implementation of `Animal` to use for `Pet`; fine.  But how do I actually write it?  As far as I've been able to find, the "standard":
+## Non-approach 1: Animal.UnmarshalJSON
 
-1. Manually handle each field of the json, i.e., unmarshal into a `map[string]json.RawMessage`, manually match those keys to fields of `Family`, (perhaps with reflection on the JSON tag, or perhaps just hardcode the shape of the struct), and then for `Pet` do the logic described above.
-2. Create a type with the same fields as `Family` but omitting `Pets`; unmarshal into that and copy the fields over.  Separately, unmarshal `Pets` with the logic described above, and copy that over.
-3. Don't implement `UnmarshalJSON`; instead, before unmarshaling into a Family, unmarshal just `Pet.Species`, then set the family's `.Pet` to the right implementation.
-4. Instead, have `Animal` be a struct containing a `Species` field, and then either an interface field with the `Cat` or `Dog`, or one field for each (of which at most one will be set); define `UnmarshalJSON` on `Animal`.
+Obviously this isn't something the JSON library is going to be able to handle itself -- I need to write an `UnmarshalJSON`; fine.  The most natural thing I might want to do is to write:
 
-In the first two cases, we have to do a bunch of extra work to handle the *other* fields of `Family`.  And we have to do this in the type that _contains_ the `Pet`, which means we potentially have to do it several times in a fairly complex way if you have, say, two fields `Livestock []Animal; Pets map[Name]Animal`.  The third case is even worse: we have to do it everywhere we unmarshal; and it gets even messier, to the point of impossibility, if our `Animal` is nested somewhere deeper.  And the fourth case, while convenient for unmarshaling, means we have to change how the _entire rest of our program_ handles this type.  Some of these limitations are fine in certain contexts, but I keep running into cases where they get very annoying.
+```go
+func (a *Animal) UnmarshalJSON(b []byte) error {
+	var s struct {
+        Species string `json:"species"`
+	}
+	err := json.Unmarshal(b, &s)
+	if err != nil {
+		return err
+	}
 
-A few other approaches one might consider do not work:
-4. Implement `UnmarshalJSON` on the `Animal` interface; this is impossible because interfaces can't implement their own methods.
-5. Implement `UnmarshalJSON`, and like (3) have it fill in the right implementation before calling back to `Unmarshal` on itself.  This recurses infinitely, because it doesn't know not to call back to `UnmarshalJSON`.
+	switch s.Species {
+	case "Canis lupus":
+        var dog Dog
+        *a = &dog
+        return json.Unmarshal(b, &dog)
+	case "Felis catus":
+        var cat Dog
+        *a = &cat
+        return json.Unmarshal(b, &cat)
+	default:
+		return fmt.Errorf("invalid species: %q", s.Species)
+	}
+}
+```
 
-After a while trying, I did eventually manage to make a version of (5) that does work, by using some Go type tricks to prevent `Unmarshal` from calling back to `UnmarshalJSON`: https://play.golang.org/p/isYzVuF4Rcw.  It is... not pretty.  It's a TODO to see if there is a way to package this up (perhaps via reflection).  Note that this still has the second problem discussed above, because it has to recurse on `Family`, not `Animal`.
+But this doesn't work, because (pointers to) interfaces aren't allowed to have methods of their own.
 
-Does anyone know of a better way?
+## Approach 2: Use a different type
+
+Here's an alternative representation of the data:
+
+```go
+// Dog, Cat, Animal as before
+
+type AnimalWrapper struct {
+    Species string `json:"species"
+    Animal
+}
+
+type Family struct {
+  Pet AnimalWrapper `json:"pet"`
+  // many other fields
+}
+```
+
+If we do things this way, the above approach works fine: we just put the `UnmarshalJSON` method on `AnimalWrapper`, and all is hunky-dory.  Except all is not hunky-dory, because we've now had to change our entire program's types just to satisfy the JSON library!  And this is definitely not the idiomatic way to do the types in Go: why have `Species` when we could just type-switch on the type of `Animal`?  We should be able to do better.
+
+## Approach 3: Wrap Unmarshal
+
+An easy way to get around this restriction is to not implement `UnmarshalJSON`, and instead, whenever we want to unmarshal into a family, we do that same logic:
+
+```go
+var f Family
+
+var s struct {
+    Pet struct {
+        Species string `json:"species"`
+    } `json:"pet"`
+}
+err := json.Unmarshal(b, &s)
+if err != nil {
+    return err
+}
+
+switch s.Pet.Species {
+case "Canis lupus":
+    f.Pet = &Dog{}
+case "Felis catus":
+    f.Pet = &Cat{}
+default:
+    return fmt.Errorf("invalid species: %q", s.Species)
+}
+
+return json.Unmarshal(b, &f)
+```
+
+This works, but it's super annoying: imagine if `Pet` were nested quite deep within `Family`; we'd have to traverse all of that structure when we call `Unmarshal`.  (In fact, if we have a potentially heterogeneous list of pets `[]Animal`, not only would we have to iterate over the JSON values to pre-fill the types, it does not work, because `json.Unmarshal` clears slices before unmarshaling into them.)  Again, we should be able to do better.
+
+## Non-approach 4: Family.UnmarshalJSON (naively)
+
+The often-recommended approach is to put our `UnmarshalJSON` a level up, on `Family`.  The naive way to do this is to just take the code from the previous approach, and put it in a method `Family.UnmarshalJSON`:
+
+```go
+func (f *Family) UnmarshalJSON(b []byte) error {
+    var s struct {
+        Pet struct {
+            Species string `json:"species"`
+        } `json:"pet"`
+    }
+    err := json.Unmarshal(b, &s)
+    if err != nil {
+        return err
+    }
+
+    switch s.Pet.Species {
+    case "Canis lupus":
+        f.Pet = &Dog{}
+    case "Felis catus":
+        f.Pet = &Cat{}
+    default:
+        return fmt.Errorf("invalid species: %q", s.Species)
+    }
+
+	return json.Unmarshal(b, f)
+}
+```
+
+But this recurses infinitely!  The call to `json.Unmarshal(b, f)` calls back to `Family.UnmarshalJSON`, because that's how you unmarshal a `Family`, which calls back to `json.Unmarshal`, and so on.
+
+## Approach 5: Family.UnmarshalJSON (fixed)
+
+So, `Family.UnmarshalJSON can't call `json.Unmarshal(f)`.  What can we do instead?  One option is to manually handle each field of the JSON: unmarshal into, say, a `map[string]json.RawMessage`, manually match those keys to fields of `Family` (via reflection on the JSON tags, or hardcoding the struct fields), and unmarshal the values into those fields one-by-one.  Alternately, we could define a struct with the same fields, but without the `UnmarshalJSON` method, call `Unmarshal` on that, and then copy each field back over to our actual `Family` (again manually or via reflection).
+
+This seems to be the most common approach, but I find it very unsatisfying.  We have to do a bunch of extra work to handle the ordinary, non-interface fields of `Family`.  Plus, we have to repeat this on each type that refers to `Animal` (and for each field of such that uses it -- this can get fairly complex if you have, say, fields `Livestock []Animal; Pets map[Name]Animal`).
+
+## Approach 6: Family.UnmarshalJSON (with a hack)
+
+I spent a while looking for a way to get around the field-by-field copying, and eventually found one.  The trick is as follows:
+
+```go
+func (f *Family) UnmarshalJSON(b []byte) error {
+    var s struct {
+        Pet struct {
+            Species string `json:"species"`
+        } `json:"pet"`
+    }
+    err := json.Unmarshal(b, &s)
+    if err != nil {
+        return err
+    }
+
+    switch s.Pet.Species {
+    case "Canis lupus":
+        f.Pet = &Dog{}
+    case "Felis catus":
+        f.Pet = &Cat{}
+    default:
+        return fmt.Errorf("invalid species: %q", s.Species)
+    }
+
+    tmp := struct{
+        *Family
+        UnmarshalJSON struct{} `json:"-"`
+    }{Family: f}
+	return json.Unmarshal(b, &tmp)
+}
+```
+
+It's not much code, but it's quite strange.  The trick is, we want the type of `tmp` to look to the JSON library like it embeds `Family` (so the call to `json.Unmarshal` will fill it in properly), but we want it to *not* have an `UnmarshalJSON` method.  We can't remove the method as such, but we can make `tmp.UnmarshalJSON` refer to something else, namely the field of the same name!  (This is because the least-deeply nested field [wins](https://golang.org/ref/spec#Selectors).)
+
+I find this code very surpsising.  But it does work, and it avoids listing all the other fields of `Family`.  It still has the other drawbacks of the previous approach: we have to repeat this on every type that uses `Animal`.  And it doesn't work as such for fields of type `[]Animal` or similar (for the same reason approach 3 doesn't), although that could be solved by unmarshaling those fields separately (with the same complexity as approach 5 in that case).
+
+## Onwards
+
+A real alternative approach is provided by [Go proposal #5901](https://github.com/golang/go/issues/5901), assuming it implements support for interfaces.  But that proposal will arrive in Go 1.17 at the earliest, and looks like it may be delayed further.  Of course it would be possible to implement a third-party fork of `encoding/json` with such support today.  It might also be possible to pack most of the complexity of approach 6 (or even approach 5) into a library.
+
+Other ideas are welcome.
