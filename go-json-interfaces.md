@@ -62,7 +62,7 @@ Here's an alternative representation of the data:
 // Dog, Cat, Animal as before
 
 type AnimalWrapper struct {
-    Species string `json:"species"
+    Species string `json:"species"`
     Animal
 }
 
