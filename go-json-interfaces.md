@@ -138,7 +138,7 @@ But this recurses infinitely!  The call to `json.Unmarshal(b, f)` calls back to 
 
 ## Approach 5: Family.UnmarshalJSON (fixed)
 
-So, `Family.UnmarshalJSON can't call `json.Unmarshal(f)`.  What can we do instead?  One option is to manually handle each field of the JSON: unmarshal into, say, a `map[string]json.RawMessage`, manually match those keys to fields of `Family` (via reflection on the JSON tags, or hardcoding the struct fields), and unmarshal the values into those fields one-by-one.  Alternately, we could define a struct with the same fields, but without the `UnmarshalJSON` method, call `Unmarshal` on that, and then copy each field back over to our actual `Family` (again manually or via reflection).
+So, `Family.UnmarshalJSON` can't call `json.Unmarshal(f)`.  What can we do instead?  One option is to manually handle each field of the JSON: unmarshal into, say, a `map[string]json.RawMessage`, manually match those keys to fields of `Family` (via reflection on the JSON tags, or hardcoding the struct fields), and unmarshal the values into those fields one-by-one.  Alternately, we could define a struct with the same fields, but without the `UnmarshalJSON` method, call `Unmarshal` on that, and then copy each field back over to our actual `Family` (again manually or via reflection).
 
 This seems to be the most common approach, but I find it very unsatisfying.  We have to do a bunch of extra work to handle the ordinary, non-interface fields of `Family`.  Plus, we have to repeat this on each type that refers to `Animal` (and for each field of such that uses it -- this can get fairly complex if you have, say, fields `Livestock []Animal; Pets map[Name]Animal`).
 
