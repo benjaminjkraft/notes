@@ -175,7 +175,7 @@ func (f *Family) UnmarshalJSON(b []byte) error {
 
 It's not much code, but it's a little strange.  The trick is, we want the type of `tmp` to look to the JSON library like `Family` (so the call to `json.Unmarshal` will fill it in properly), but we want it to *not* have an `UnmarshalJSON` method.  We can't remove the method as such, but we can make another type with the same underlying type (i.e. struct structure).  (There are a few other tricks to do this, such as embedding `Family` in a type with an additional field `UnmarshalJSON struct{}` that gets precedence over the method.)
 
-I find this code a little weird.  But it does work, and it avoids listing all the other fields of `Family`.  It still has the other drawbacks of the previous approach: we have to repeat this on every type that uses `Animal`.  And it doesn't work as such for fields of type `[]Animal` or similar (for the same reason approach 3 doesn't), although that could be solved by unmarshaling those fields separately (with the same complexity as approach 5 in that case).
+I find this code a little weird.  But it does work, and it avoids listing all the other fields of `Family`.  It still has the other drawbacks of the previous approach: we have to repeat this on every type that uses `Animal`.  And it requires additional complexity for fields of type `[]Animal` or similar (for the same reason approach 3 doesn't work).
 
 Thanks to [Emil](https://twitter.com/emilioemilianov) and [Steve](https://twitter.com/StevenACoffman) for simplifications to this approach.
 
