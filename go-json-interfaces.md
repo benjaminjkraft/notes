@@ -1,4 +1,4 @@
-# Unmarshaling into interface types in Go.
+# Unmarshaling into interface types in Go
 
 It's bothering me more and more that I don't know of a good way to unmarshal JSON into a struct with fields of interface type in Go.
 
