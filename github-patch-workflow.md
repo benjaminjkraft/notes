@@ -57,6 +57,10 @@ git push origin patch-A
 
 So the author keeps their patch-stack, and the reviewers see only commits!
 
-TODO after lunch: what happens when the patches are dependent?  Basically we
-just do the best we can, according to previous proposals, but it'd be worth
-working out some of the tricky cases.
+TODO: what happens when the patches are dependent?  Basically we just do the
+best we can, according to previous proposals, but it'd be worth working out
+some of the tricky cases.
+TODO: can we actually do this via merges, such that even stacked commits will
+work right (and thereby better than the canonical rebase workflow for the
+same)?
+
