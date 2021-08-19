@@ -39,6 +39,8 @@ gh pr patch-A  # or `git pull-request patch-A` for OLC users
 
 # repeat for B and C
 ```
+The cherry-picks are by construction clean, because the commits have no
+dependencies.
 
 Now, suppose you make some changes, such that the three are at commits A2, B2,
 and C2; for now assume that the parent of A2 is the same as that of A1.  The
@@ -57,10 +59,24 @@ git push origin patch-A
 
 So the author keeps their patch-stack, and the reviewers see only commits!
 
-TODO: what happens when the patches are dependent?  Basically we just do the
-best we can, according to previous proposals, but it'd be worth working out
-some of the tricky cases.
+If the commits have dependencies, then we stack our branches in that order in
+the side-worktree, and do basically the same thing, but now we may have to
+rebase the B and C when A is updated; this seems to be a necessary evil for
+dependent pull-requests in all workflows.  Of course, we can try to force-push
+the rebases separately from the contentful changes, and importantly, we keep
+the commit-by-commit history.  (A potential problem here is that that means we
+need to rebase each rev separately; we'd have to have an option to squash them
+if that will cause conflicts.)
+
+Ideally, we can do the switching between the two modes under the hood (perhaps
+with a warning to the user); it'll just tell you "I noticed this dependency"
+and do the right thing.
+
+
+TODO: flesh out the dependent-patches cases, there are a lot of details to
+understand and where this might break down.
 TODO: can we actually do this via merges, such that even stacked commits will
 work right (and thereby better than the canonical rebase workflow for the
-same)?
+same)?  Sadly that doesn't work well when you land the bottom patch, nor when
+you reorder.
 
