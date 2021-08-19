@@ -77,6 +77,5 @@ TODO: flesh out the dependent-patches cases, there are a lot of details to
 understand and where this might break down.
 TODO: can we actually do this via merges, such that even stacked commits will
 work right (and thereby better than the canonical rebase workflow for the
-same)?  Sadly that doesn't work well when you land the bottom patch, nor when
-you reorder.
+same)?  It's a bit hard when you land the bottom patch (into, say, commit AS), but maybe you can merge AS into B (and in principle you should be able to know the correct resolution to what git will presumably see as conflicts).  Still, there's no way to reorder or split reviews, so it's not clear that it's worth the effort.
 
