@@ -117,11 +117,15 @@ git rebase branch-1 --onto origin/main
 The other annoying thing is you really have to merge them into each branch
 every time you update any lower branch, otherwise you get spurious changes (and
 merge conflicts) in the dependent PRs. The new `git rebase --update-refs` may
-help for this but I haven't tried it. The alternate solution is to use merges;
-GitHub understands those so you can just merge into whichever branches you feel
-like. (The tangled history will of course disappear with the final squash.) The
-problem incorporating updates from squash-merged branches is now even more
-painful. The trick is to create a fake merge commit between our local
+help for this but I haven't tried it.
+
+The alternate solution to both of these (which to be clear I don't recommend;
+I'm mostly trying it as a test of the hot take) is to use merges; git and
+GitHub understand those so you can just merge whichever dependency branch
+changes into whichever dependent branches you feel like the usual way. (The
+tangled history will of course disappear with the final squash.) The
+problem is incorporating updates from squash-merged branches is now completely
+non-obvious. The trick is to create a fake merge commit between our local
 `branch-1` and main that actually just takes main's version, and then merge
 *that* into `branch-2`:
 
