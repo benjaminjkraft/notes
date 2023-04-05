@@ -83,3 +83,57 @@ the correct resolution to what git will presumably see as conflicts).  Still,
 there's no way to reorder or split reviews, so it's not clear that it's worth
 the effort.
 
+## prior art
+
+TODO: look at more, explain what I don't like about these. generally many of them are too visible to reviewers for my taste
+
+- https://graphite.dev/stacking 
+- https://github.com/ezyang/ghstack
+- https://github.com/ejoffe/spr
+- https://github.com/keith/git-pile
+
+## appendix: what I do right now
+
+This part is not particularly original, but I do have a few tricks.
+
+The basic idea is you have a stack of branches, each of whose upstream is the
+previous branch. When you make a change to one branch, you rebase all the ones
+above it.
+
+The first set of tricks is around how to know what to rebase onto. The basic
+idea is when you are updating `branch-n+1`, you want to check it out, then `git
+rebase old-branch-n --onto new-branch-n` so that you don't have to deal with
+replaying duplicate commits. When you've already rebased `branch-n` (and it's
+set as your upstream), you can just use `git rebase --fork-point` which will
+automatically figure that out. When you've just squash-merged the bottom PR
+(through the UI/merge queue), what you want is:
+```
+git fetch origin
+git checkout branch-2
+# origin/main is new branch-1
+git rebase branch-1 --onto origin/main
+```
+
+The other annoying thing is you really have to merge them into each branch
+every time you update any lower branch, otherwise you get spurious changes (and
+merge conflicts) in the dependent PRs. The new `git rebase --update-refs` may
+help for this but I haven't tried it. The alternate solution is to use merges;
+GitHub understands those so you can just merge into whichever branches you feel
+like. (The tangled history will of course disappear with the final squash.) The
+problem incorporating updates from squash-merged branches is now even more
+painful. The trick is to create a fake merge commit between our local
+`branch-1` and main that actually just takes main's version, and then merge
+*that* into `branch-2`:
+
+```
+git fetch origin
+git checkout branch-1
+# clobber our version with their version
+# (TODO: this isn't strictly right; it only clobbers in case of conflicts.
+# figure out how to *really* clobber just in case.)
+git merge origin/main -X theirs
+git checkout branch-2
+git merge branch-1
+```
+
+Look, I didn't say this was a good workflow!
