@@ -136,6 +136,7 @@ git checkout branch-1
 # (TODO: this isn't strictly right; it only clobbers in case of conflicts.
 # figure out how to *really* clobber just in case.)
 git merge origin/main -X theirs
+git diff origin/main # should be empty, this is to check the clobber worked
 git checkout branch-2
 git merge branch-1
 ```
