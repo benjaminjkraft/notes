@@ -107,7 +107,7 @@ replaying duplicate commits. When you've already rebased `branch-n` (and it's
 set as your upstream), you can just use `git rebase --fork-point` which will
 automatically figure that out. When you've just squash-merged the bottom PR
 (through the UI/merge queue), what you want is:
-```
+```sh
 git fetch origin
 git checkout branch-2
 # origin/main is new branch-1
@@ -129,12 +129,13 @@ non-obvious. The trick is to create a fake merge commit between our local
 `branch-1` and main that actually just takes main's version, and then merge
 *that* into `branch-2`:
 
-```
+```sh
 git fetch origin
 git checkout branch-1
 # clobber our version with their version
 # (TODO: this isn't strictly right; it only clobbers in case of conflicts.
-# figure out how to *really* clobber just in case.)
+# it also fails when we modified a file deleted in main. figure out how to
+# *really* clobber just in case.)
 git merge origin/main -X theirs
 git diff origin/main # should be empty, this is to check the clobber worked
 git checkout branch-2
