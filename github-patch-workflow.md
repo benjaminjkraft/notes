@@ -87,10 +87,19 @@ the effort.
 
 TODO: look at more, explain what I don't like about these. generally many of them are too visible to reviewers for my taste
 
-- https://graphite.dev/stacking 
-- https://github.com/ezyang/ghstack
-- https://github.com/ejoffe/spr
-- https://github.com/keith/git-pile
+Decent-looking comparison: https://github.com/gitext-rs/git-stack/blob/main/docs/comparison.md
+
+- https://graphite.dev/stacking: paid service, haven't tried yet
+- https://github.com/ezyang/ghstack: uses fake branches/won't play with MQ
+- https://github.com/ejoffe/spr: rebase-based, requires one commit per PR (maybe fine)
+- https://github.com/keith/git-pile: aimed at independent commits, doesn't help that much for stacks, which is where this matters most to me
+- https://github.com/VirtusLab/git-machete
+- https://github.com/arxanas/git-branchless: rebase-based I think, has some cool ideas though
+- https://git-ps.sh/: rebase-based, one commit per PR (maybe fine)
+- https://github.com/gitext-rs/git-stack: doesn't seem to play nice with GH??
+- https://stacked-git.github.io/: looks sensible but designed for email-based workflow, thanks linus
+- https://github.com/facebook/sapling, https://github.com/martinvonz/jj: do I really want a new VCS? maybe?
+- https://git.sr.ht/~krobelus/git-branchstack
 
 ## appendix: what I do right now
 
