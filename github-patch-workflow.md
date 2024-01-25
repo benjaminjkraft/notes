@@ -89,7 +89,7 @@ TODO: look at more, explain what I don't like about these. generally many of the
 
 Decent-looking comparison: https://github.com/gitext-rs/git-stack/blob/main/docs/comparison.md
 
-- https://graphite.dev/stacking: paid service, haven't tried yet
+- https://graphite.dev/features/cli: paid service, haven't tried yet
 - https://github.com/ezyang/ghstack: uses fake branches/won't play with MQ
 - https://github.com/ejoffe/spr: rebase-based, requires one commit per PR (maybe fine)
 - https://github.com/keith/git-pile: aimed at independent commits, doesn't help that much for stacks, which is where this matters most to me
