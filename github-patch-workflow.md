@@ -101,6 +101,7 @@ Decent-looking comparison: https://github.com/gitext-rs/git-stack/blob/main/docs
 - https://github.com/facebook/sapling, https://github.com/martinvonz/jj: do I really want a new VCS? maybe?
 - https://git.sr.ht/~krobelus/git-branchstack
 - https://github.com/magus/git-stack-cli
+- https://gitbutler.com: GUI only
 
 ## appendix: what I do right now
 
