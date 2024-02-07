@@ -100,6 +100,7 @@ Decent-looking comparison: https://github.com/gitext-rs/git-stack/blob/main/docs
 - https://stacked-git.github.io/: looks sensible but designed for email-based workflow, thanks linus
 - https://github.com/facebook/sapling, https://github.com/martinvonz/jj: do I really want a new VCS? maybe?
 - https://git.sr.ht/~krobelus/git-branchstack
+- https://github.com/magus/git-stack-cli
 
 ## appendix: what I do right now
 
