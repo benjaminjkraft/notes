@@ -82,6 +82,10 @@ but maybe you can merge AS into B (and in principle you should be able to know
 the correct resolution to what git will presumably see as conflicts).  Still,
 there's no way to reorder or split reviews, so it's not clear that it's worth
 the effort.
+TODO: yes, the fake-merge works
+TODO: how do we know which commits you modified? without care we end up hiding
+things in merge commits. if you just modify one at a time and we know which one
+it's fine. (git hook????)
 
 ## prior art
 
